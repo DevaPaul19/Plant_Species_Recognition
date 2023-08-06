@@ -1,0 +1,411 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "6c536b42",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import tensorflow as tf\n",
+    "import numpy as np\n",
+    "import scipy\n",
+    "import splitfolders\n",
+    "from keras.preprocessing.image import ImageDataGenerator"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "966049c6",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#input_folder = 'dataset'\n",
+    "#splitfolders.ratio(input_folder, output='leaf_dataset',seed=42,ratio=(.7,.2,.1),group_prefix=None)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "c61f8f95",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Found 5316 images belonging to 184 classes.\n"
+     ]
+    }
+   ],
+   "source": [
+    "#Training Image processing\n",
+    "train_datagen = ImageDataGenerator(rescale=1./255,\n",
+    "                                  shear_range=0.2,\n",
+    "                                  zoom_range=0.2,\n",
+    "                                  horizontal_flip=True)\n",
+    "training_set = train_datagen.flow_from_directory('train',target_size=(64,64),batch_size=32,class_mode='categorical')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "1fd383de",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Found 922 images belonging to 184 classes.\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Test Image processing\n",
+    "test_datagen = ImageDataGenerator(rescale=1./255)\n",
+    "test_set = test_datagen.flow_from_directory('test',target_size=(64,64),batch_size=32,class_mode='categorical')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "f90a6062",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Epoch 1/3\n",
+      "167/167 [==============================] - 56s 334ms/step - loss: 4.9447 - accuracy: 0.0448 - val_loss: 4.5058 - val_accuracy: 0.0640\n",
+      "Epoch 2/3\n",
+      "167/167 [==============================] - 59s 353ms/step - loss: 3.9995 - accuracy: 0.1187 - val_loss: 3.6825 - val_accuracy: 0.1518\n",
+      "Epoch 3/3\n",
+      "167/167 [==============================] - 60s 359ms/step - loss: 3.2720 - accuracy: 0.1973 - val_loss: 3.2332 - val_accuracy: 0.2115\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "<keras.callbacks.History at 0x1a1d76a8e80>"
+      ]
+     },
+     "execution_count": 6,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#Building Model\n",
+    "cnn = tf.keras.models.Sequential()\n",
+    "# Building Convolution layer\n",
+    "cnn.add(tf.keras.layers.Conv2D(filters=64,kernel_size=3,activation='relu',input_shape=[64,64,3]))\n",
+    "cnn.add(tf.keras.layers.MaxPool2D(pool_size=2,strides=2))\n",
+    "cnn.add(tf.keras.layers.Conv2D(filters=64,kernel_size=3,activation='relu'))\n",
+    "cnn.add(tf.keras.layers.MaxPool2D(pool_size=2,strides=2))\n",
+    "cnn.add(tf.keras.layers.Dropout(0.5))\n",
+    "cnn.add(tf.keras.layers.Flatten())\n",
+    "cnn.add(tf.keras.layers.Dense(units=128,activation='relu'))\n",
+    "cnn.add(tf.keras.layers.Dense(units=184,activation='softmax'))\n",
+    "cnn.compile(optimizer='rmsprop',loss='categorical_crossentropy',metrics=['accuracy'])\n",
+    "cnn.fit(x=training_set,validation_data=test_set,epochs=3)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 44,
+   "id": "75da3b70",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "1/1 [==============================] - 0s 16ms/step\n"
+     ]
+    }
+   ],
+   "source": [
+    "#Preprocess new Image\n",
+    "from keras.utils import load_img,img_to_array\n",
+    "test_image = load_img('R.jpeg',target_size=(64,64))\n",
+    "test_image = img_to_array(test_image)\n",
+    "test_image = np.expand_dims(test_image,axis=0)\n",
+    "result = cnn.predict(test_image)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 45,
+   "id": "76149a82",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "{'abies_concolor': 0,\n",
+       " 'abies_nordmanniana': 1,\n",
+       " 'acer_campestre': 2,\n",
+       " 'acer_ginnala': 3,\n",
+       " 'acer_griseum': 4,\n",
+       " 'acer_negundo': 5,\n",
+       " 'acer_palmatum': 6,\n",
+       " 'acer_pensylvanicum': 7,\n",
+       " 'acer_platanoides': 8,\n",
+       " 'acer_pseudoplatanus': 9,\n",
+       " 'acer_rubrum': 10,\n",
+       " 'acer_saccharinum': 11,\n",
+       " 'acer_saccharum': 12,\n",
+       " 'aesculus_flava': 13,\n",
+       " 'aesculus_glabra': 14,\n",
+       " 'aesculus_hippocastamon': 15,\n",
+       " 'aesculus_pavi': 16,\n",
+       " 'ailanthus_altissima': 17,\n",
+       " 'albizia_julibrissin': 18,\n",
+       " 'amelanchier_arborea': 19,\n",
+       " 'amelanchier_canadensis': 20,\n",
+       " 'amelanchier_laevis': 21,\n",
+       " 'asimina_triloba': 22,\n",
+       " 'betula_alleghaniensis': 23,\n",
+       " 'betula_jacqemontii': 24,\n",
+       " 'betula_lenta': 25,\n",
+       " 'betula_nigra': 26,\n",
+       " 'betula_populifolia': 27,\n",
+       " 'broussonettia_papyrifera': 28,\n",
+       " 'carpinus_betulus': 29,\n",
+       " 'carpinus_caroliniana': 30,\n",
+       " 'carya_cordiformis': 31,\n",
+       " 'carya_glabra': 32,\n",
+       " 'carya_ovata': 33,\n",
+       " 'carya_tomentosa': 34,\n",
+       " 'castanea_dentata': 35,\n",
+       " 'catalpa_bignonioides': 36,\n",
+       " 'catalpa_speciosa': 37,\n",
+       " 'cedrus_atlantica': 38,\n",
+       " 'cedrus_deodara': 39,\n",
+       " 'cedrus_libani': 40,\n",
+       " 'celtis_occidentalis': 41,\n",
+       " 'celtis_tenuifolia': 42,\n",
+       " 'cercidiphyllum_japonicum': 43,\n",
+       " 'cercis_canadensis': 44,\n",
+       " 'chamaecyparis_pisifera': 45,\n",
+       " 'chamaecyparis_thyoides': 46,\n",
+       " 'chionanthus_retusus': 47,\n",
+       " 'chionanthus_virginicus': 48,\n",
+       " 'cladrastis_lutea': 49,\n",
+       " 'cornus_florida': 50,\n",
+       " 'cornus_kousa': 51,\n",
+       " 'cornus_mas': 52,\n",
+       " 'corylus_colurna': 53,\n",
+       " 'crataegus_crus-galli': 54,\n",
+       " 'crataegus_laevigata': 55,\n",
+       " 'crataegus_phaenopyrum': 56,\n",
+       " 'crataegus_pruinosa': 57,\n",
+       " 'crataegus_viridis': 58,\n",
+       " 'cryptomeria_japonica': 59,\n",
+       " 'diospyros_virginiana': 60,\n",
+       " 'eucommia_ulmoides': 61,\n",
+       " 'evodia_daniellii': 62,\n",
+       " 'fagus_grandifolia': 63,\n",
+       " 'ficus_carica': 64,\n",
+       " 'fraxinus_americana': 65,\n",
+       " 'fraxinus_nigra': 66,\n",
+       " 'fraxinus_pennsylvanica': 67,\n",
+       " 'ginkgo_biloba': 68,\n",
+       " 'gleditsia_triacanthos': 69,\n",
+       " 'gymnocladus_dioicus': 70,\n",
+       " 'halesia_tetraptera': 71,\n",
+       " 'ilex_opaca': 72,\n",
+       " 'juglans_cinerea': 73,\n",
+       " 'juglans_nigra': 74,\n",
+       " 'juniperus_virginiana': 75,\n",
+       " 'koelreuteria_paniculata': 76,\n",
+       " 'larix_decidua': 77,\n",
+       " 'liquidambar_styraciflua': 78,\n",
+       " 'liriodendron_tulipifera': 79,\n",
+       " 'maclura_pomifera': 80,\n",
+       " 'magnolia_acuminata': 81,\n",
+       " 'magnolia_denudata': 82,\n",
+       " 'magnolia_grandiflora': 83,\n",
+       " 'magnolia_macrophylla': 84,\n",
+       " 'magnolia_soulangiana': 85,\n",
+       " 'magnolia_stellata': 86,\n",
+       " 'magnolia_tripetala': 87,\n",
+       " 'magnolia_virginiana': 88,\n",
+       " 'malus_angustifolia': 89,\n",
+       " 'malus_baccata': 90,\n",
+       " 'malus_coronaria': 91,\n",
+       " 'malus_floribunda': 92,\n",
+       " 'malus_hupehensis': 93,\n",
+       " 'malus_pumila': 94,\n",
+       " 'metasequoia_glyptostroboides': 95,\n",
+       " 'morus_alba': 96,\n",
+       " 'morus_rubra': 97,\n",
+       " 'nyssa_sylvatica': 98,\n",
+       " 'ostrya_virginiana': 99,\n",
+       " 'oxydendrum_arboreum': 100,\n",
+       " 'paulownia_tomentosa': 101,\n",
+       " 'phellodendron_amurense': 102,\n",
+       " 'picea_abies': 103,\n",
+       " 'picea_orientalis': 104,\n",
+       " 'picea_pungens': 105,\n",
+       " 'pinus_bungeana': 106,\n",
+       " 'pinus_cembra': 107,\n",
+       " 'pinus_densiflora': 108,\n",
+       " 'pinus_echinata': 109,\n",
+       " 'pinus_flexilis': 110,\n",
+       " 'pinus_koraiensis': 111,\n",
+       " 'pinus_nigra': 112,\n",
+       " 'pinus_parviflora': 113,\n",
+       " 'pinus_peucea': 114,\n",
+       " 'pinus_pungens': 115,\n",
+       " 'pinus_resinosa': 116,\n",
+       " 'pinus_rigida': 117,\n",
+       " 'pinus_strobus': 118,\n",
+       " 'pinus_sylvestris': 119,\n",
+       " 'pinus_taeda': 120,\n",
+       " 'pinus_thunbergii': 121,\n",
+       " 'pinus_virginiana': 122,\n",
+       " 'pinus_wallichiana': 123,\n",
+       " 'platanus_acerifolia': 124,\n",
+       " 'platanus_occidentalis': 125,\n",
+       " 'populus_deltoides': 126,\n",
+       " 'populus_grandidentata': 127,\n",
+       " 'populus_tremuloides': 128,\n",
+       " 'prunus_pensylvanica': 129,\n",
+       " 'prunus_sargentii': 130,\n",
+       " 'prunus_serotina': 131,\n",
+       " 'prunus_serrulata': 132,\n",
+       " 'prunus_subhirtella': 133,\n",
+       " 'prunus_virginiana': 134,\n",
+       " 'prunus_yedoensis': 135,\n",
+       " 'pseudolarix_amabilis': 136,\n",
+       " 'ptelea_trifoliata': 137,\n",
+       " 'pyrus_calleryana': 138,\n",
+       " 'quercus_acutissima': 139,\n",
+       " 'quercus_alba': 140,\n",
+       " 'quercus_bicolor': 141,\n",
+       " 'quercus_cerris': 142,\n",
+       " 'quercus_coccinea': 143,\n",
+       " 'quercus_falcata': 144,\n",
+       " 'quercus_imbricaria': 145,\n",
+       " 'quercus_macrocarpa': 146,\n",
+       " 'quercus_marilandica': 147,\n",
+       " 'quercus_michauxii': 148,\n",
+       " 'quercus_montana': 149,\n",
+       " 'quercus_muehlenbergii': 150,\n",
+       " 'quercus_nigra': 151,\n",
+       " 'quercus_palustris': 152,\n",
+       " 'quercus_phellos': 153,\n",
+       " 'quercus_robur': 154,\n",
+       " 'quercus_rubra': 155,\n",
+       " 'quercus_shumardii': 156,\n",
+       " 'quercus_stellata': 157,\n",
+       " 'quercus_velutina': 158,\n",
+       " 'quercus_virginiana': 159,\n",
+       " 'robinia_pseudo-acacia': 160,\n",
+       " 'salix_babylonica': 161,\n",
+       " 'salix_caroliniana': 162,\n",
+       " 'salix_matsudana': 163,\n",
+       " 'salix_nigra': 164,\n",
+       " 'sassafras_albidum': 165,\n",
+       " 'staphylea_trifolia': 166,\n",
+       " 'stewartia_pseudocamellia': 167,\n",
+       " 'styrax_japonica': 168,\n",
+       " 'styrax_obassia': 169,\n",
+       " 'syringa_reticulata': 170,\n",
+       " 'taxodium_distichum': 171,\n",
+       " 'tilia_americana': 172,\n",
+       " 'tilia_cordata': 173,\n",
+       " 'tilia_europaea': 174,\n",
+       " 'tilia_tomentosa': 175,\n",
+       " 'toona_sinensis': 176,\n",
+       " 'tsuga_canadensis': 177,\n",
+       " 'ulmus_americana': 178,\n",
+       " 'ulmus_glabra': 179,\n",
+       " 'ulmus_parvifolia': 180,\n",
+       " 'ulmus_pumila': 181,\n",
+       " 'ulmus_rubra': 182,\n",
+       " 'zelkova_serrata': 183}"
+      ]
+     },
+     "execution_count": 45,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "training_set.class_indices"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 46,
+   "id": "c888dbca",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "keys=list(training_set.class_indices.keys())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 47,
+   "id": "19d952f6",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Predicted plant: juglans_cinerea\n"
+     ]
+    }
+   ],
+   "source": [
+    "for i in range(184):\n",
+    "    if(result[0][i]==1.0):\n",
+    "       print(\"Predicted plant:\",keys[i])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "02aeaade",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "bda2e1b0",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.9.13"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
